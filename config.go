@@ -257,6 +257,9 @@ func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.Blo
 }
 
 func calculateSizeRate(t int) (uint, float64) {
-	total := t * 30
+	total := t
+	if total < 10_000 {
+		total = total * 30
+	}
 	return uint(total), 0.01
 }
