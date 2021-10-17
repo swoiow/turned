@@ -14,8 +14,6 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
-	ot "github.com/opentracing/opentracing-go"
-	otext "github.com/opentracing/opentracing-go/ext"
 )
 
 var log = clog.NewWithPlugin(pluginName)
@@ -49,13 +47,13 @@ func (app *Turned) Name() string { return pluginName }
 
 // ServeDNS implements plugin.Handler.
 func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	start := time.Now()
+
 	var f *Forward
 	question := r.Question[0]
 	qDomain := strings.ToLower(strings.TrimSuffix(question.Name, "."))
 
 	for _, node := range app.Nodes {
-		// log.Infof("[Forward: %s] checking", node.Name())
-
 		if node.match(qDomain) {
 			f = node
 			break
@@ -64,11 +62,10 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 	if f == nil {
 		log.Warning("next plugin \n")
-
 		return plugin.NextOrFailure(app.Name(), app.Next, ctx, w, r)
 	}
 
-	log.Infof("[Forward: %s] matched", f.Name())
+	matchedTime := time.Since(start)
 
 	state := request.Request{W: w, Req: r}
 
@@ -82,13 +79,11 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	}
 
 	fails := 0
-	var span, child ot.Span
 	var upstreamErr error
-	span = ot.SpanFromContext(ctx)
 	i := 0
 	list := f.List()
 	deadline := time.Now().Add(defaultTimeout)
-	start := time.Now()
+
 	for time.Now().Before(deadline) {
 		if i >= len(list) {
 			// reached the end of list, reset to begin
@@ -109,12 +104,6 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 			proxy = r.List(f.proxies)[0]
 
 			HealthcheckBrokenCount.Add(1)
-		}
-
-		if span != nil {
-			child = span.Tracer().StartSpan("connect", ot.ChildOf(span.Context()))
-			otext.PeerAddress.Set(child, proxy.addr)
-			ctx = ot.ContextWithSpan(ctx, child)
 		}
 
 		metadata.SetValueFunc(ctx, "forward/upstream", func() string {
@@ -139,11 +128,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 			break
 		}
 
-		if child != nil {
-			child.Finish()
-		}
-
-		log.Infof("spent: %s", time.Since(start))
+		log.Infof("matched by: %s (%s) - spent: %s", f.Name(), matchedTime, time.Since(start))
 
 		upstreamErr = err
 
