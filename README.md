@@ -2,7 +2,8 @@
 
 A coredns plugin to turn DNS query.
 
-forward 的变形, dns 按分组选择查询上游。没计划实现dns优选(建议使用 Edns-Client-Subnet)。 收集常用的app的一，二级域名
+forward 的变形, dns 按分组选择查询上游。没计划实现dns优选(建议使用 Edns-Client-Subnet)。 
+收集常用的app的一，二级域名。
 
 ## Usage
 
