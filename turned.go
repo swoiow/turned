@@ -128,7 +128,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 			break
 		}
 
-		log.Infof("matched by: %s (%s) - spent: %s", f.Name(), matchedTime, time.Since(start))
+		log.Infof("%s (%s) - %s - spent: %s", f.Name(), matchedTime, qDomain, time.Since(start))
 
 		upstreamErr = err
 
