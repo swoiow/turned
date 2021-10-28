@@ -27,17 +27,14 @@ func setup(c *caddy.Controller) error {
 	app := Turned{Nodes: nodes}
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		app.Next = next
-		log.Info("To plugin")
 		return &app
 	})
 
 	c.OnStartup(func() error {
-		log.Info("OnStartup")
 		return app.OnStartup()
 	})
 
 	c.OnShutdown(func() error {
-		log.Info("OnShutdown")
 		return app.OnShutdown()
 	})
 
