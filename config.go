@@ -229,11 +229,19 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 	case "rules":
 		args := c.RemainingArgs()
 		inputString := strings.TrimSpace(args[0])
-		lines, _ := utils.FileToLines(inputString)
 
-		bottle := bloom.NewWithEstimates(calculateSizeRate(len(lines)))
-		addLines2filter(parsers.LooseParser(lines, parsers.DomainParser, 1), bottle)
-		f.bottle = bottle
+		if f.bottle == nil {
+			bottle := bloom.NewWithEstimates(50_000, 0.1)
+			f.bottle = bottle
+		}
+
+		if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
+			strings.HasPrefix(strings.ToLower(inputString), "https://") {
+			_ = utils.LoadRuleByRemote(inputString, f.bottle)
+		} else {
+			_ = utils.LoadRuleByLocal(inputString, f.bottle, false)
+		}
+
 		f.from = ""
 		break
 
