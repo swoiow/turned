@@ -43,9 +43,12 @@ forward的改造，dns按分组选择查询上游。没计划实现dns优选(建
         rules domains-1.txt
         rules domains-2.txt
         rules https://domains.txt
+
+        rules cache+domains.dat
+        rules cache+https://domains.dat
         
         # 转发至指定dns
-        to 10.2.0.22:53
+        to 1.1.1.1:53
     }
 }
 ```

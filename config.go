@@ -214,6 +214,7 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			f.proxies[i].SetExpire(f.expire)
 			f.proxies[i].health.SetRecursionDesired(f.opts.hcRecursionDesired)
 		}
+
 	case "from":
 		args := c.RemainingArgs()
 
@@ -226,20 +227,34 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			f.from = ""
 		}
 		break
+
 	case "rules":
 		args := c.RemainingArgs()
 		inputString := strings.TrimSpace(args[0])
+		inputStringInLow := strings.ToLower(inputString)
 
 		if f.bottle == nil {
 			bottle := bloom.NewWithEstimates(50_000, 0.1)
 			f.bottle = bottle
 		}
 
-		if strings.HasPrefix(strings.ToLower(inputString), "http://") ||
-			strings.HasPrefix(strings.ToLower(inputString), "https://") {
+		switch true {
+		case strings.HasPrefix(inputStringInLow, "cache+"):
+			inputString = strings.TrimPrefix(inputString, "cache+")
+
+			if strings.HasPrefix(inputStringInLow, "http://") || strings.HasPrefix(inputStringInLow, "https://") {
+				_ = utils.LoadCacheByRemote(inputString, f.bottle)
+			} else {
+				_ = utils.LoadCacheByLocal(inputString, f.bottle)
+			}
+
+		case strings.HasPrefix(inputStringInLow, "http://"),
+			strings.HasPrefix(inputStringInLow, "https://"):
 			_ = utils.LoadRuleByRemote(inputString, f.bottle)
-		} else {
+
+		default:
 			_ = utils.LoadRuleByLocal(inputString, f.bottle, false)
+
 		}
 
 		f.from = ""
