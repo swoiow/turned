@@ -234,7 +234,7 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		inputStringInLow := strings.ToLower(inputString)
 
 		if f.bottle == nil {
-			bottle := bloom.NewWithEstimates(50_000, 0.1)
+			bottle := bloom.NewWithEstimates(50_000, 0.001)
 			f.bottle = bottle
 		}
 
