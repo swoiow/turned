@@ -51,7 +51,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 	var f *Forward
 	question := r.Question[0]
-	qDomain := strings.ToLower(strings.TrimSuffix(question.Name, "."))
+	qDomain := PureDomain(question.Name)
 
 	for _, node := range app.Nodes {
 		if node.match(qDomain) {
@@ -178,7 +178,7 @@ func (f *Forward) match(d string) bool {
 	case f.bottle != nil:
 		// log.Info("matching by bottle")
 
-		if f.bottle.TestString(d) {
+		if f.bottle.Contains(d) {
 			return true
 		}
 		return f.useWildMode(d)
@@ -210,7 +210,7 @@ func GetWild(h string) []string {
 func (f *Forward) useWildMode(name string) bool {
 	dnList := GetWild(name)
 	for _, dn := range dnList {
-		if f.bottle.TestString(dn) {
+		if f.bottle.Contains(dn) {
 			return true
 		}
 	}

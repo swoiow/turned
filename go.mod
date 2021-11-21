@@ -8,7 +8,7 @@ require (
 	github.com/coredns/coredns v1.8.6
 	github.com/miekg/dns v1.1.43
 	github.com/prometheus/client_golang v1.11.0
-	github.com/swoiow/blocked v1.0.3-0.20211026115436-bcfa043ca4c2
+	github.com/swoiow/blocked v1.1.1
 )
 
 require (
@@ -16,6 +16,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

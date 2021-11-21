@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/coredns/plugin"
 )
 
@@ -34,7 +33,7 @@ type Forward struct {
 	ErrLimitExceeded error
 
 	from   string
-	bottle *bloom.BloomFilter
+	bottle *bottleAdapter
 }
 
 type Turned struct {

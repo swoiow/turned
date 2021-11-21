@@ -221,9 +221,13 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		if len(args) == 1 {
 			f.from = strings.TrimSpace(args[0])
 		} else {
-			bottle := bloom.NewWithEstimates(calculateSizeRate(len(args)))
-			addLines2filter(parsers.LooseParser(args, parsers.DomainParser, 1), bottle)
-			f.bottle = bottle
+			adapter := NewAdapter()
+			for _, line := range parsers.LooseParser(args, parsers.DomainParser, 1) {
+				adapter.mapAddString(line)
+			}
+			adapter.setupContainsFunc()
+
+			f.bottle = adapter
 			f.from = ""
 		}
 		break
@@ -235,7 +239,12 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 
 		if f.bottle == nil {
 			bottle := bloom.NewWithEstimates(50_000, 0.001)
-			f.bottle = bottle
+
+			adapter := NewAdapter()
+			adapter.BloomFilter = bottle
+			adapter.setupContainsFunc()
+
+			f.bottle = adapter
 		}
 
 		switch true {
@@ -243,17 +252,17 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			inputString = strings.TrimPrefix(inputString, "cache+")
 
 			if strings.HasPrefix(inputStringInLow, "http://") || strings.HasPrefix(inputStringInLow, "https://") {
-				_ = utils.LoadCacheByRemote(inputString, f.bottle)
+				_ = utils.LoadCacheByRemote(inputString, f.bottle.BloomFilter)
 			} else {
-				_ = utils.LoadCacheByLocal(inputString, f.bottle)
+				_ = utils.LoadCacheByLocal(inputString, f.bottle.BloomFilter)
 			}
 
 		case strings.HasPrefix(inputStringInLow, "http://"),
 			strings.HasPrefix(inputStringInLow, "https://"):
-			_ = utils.LoadRuleByRemote(inputString, f.bottle)
+			_ = utils.LoadRuleByRemote(inputString, f.bottle.BloomFilter)
 
 		default:
-			_ = utils.LoadRuleByLocal(inputString, f.bottle, false)
+			_ = utils.LoadRuleByLocal(inputString, f.bottle.BloomFilter, false)
 
 		}
 
@@ -269,20 +278,6 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 
 const max = 15 // Maximum number of upstreams.
 
-func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {
-	c := 0
-	for _, line := range lines {
-		if !filter.TestAndAddString(strings.ToLower(strings.TrimSpace(line))) {
-			c += 1
-		}
-	}
-	return c, filter
-}
-
-func calculateSizeRate(t int) (uint, float64) {
-	total := t
-	if total < 10_000 {
-		total = total * 30
-	}
-	return uint(total), 0.01
+func PureDomain(s string) string {
+	return utils.PureDomain(s)
 }
