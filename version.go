@@ -2,5 +2,5 @@ package turned
 
 const (
 	pluginName = "turned"
-	pluginVers = "0.0.1"
+	pluginVers = "0.0.2"
 )
