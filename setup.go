@@ -11,7 +11,7 @@ import (
 func init() { plugin.Register(pluginName, setup) }
 
 func setup(c *caddy.Controller) error {
-	log.Infof("Initializing, %s: v%s", pluginName, pluginVers)
+	log.Infof("Initializing, %s: v%s", pluginName, pluginVer)
 
 	nodes, err := parseTurned(c)
 	if err != nil {

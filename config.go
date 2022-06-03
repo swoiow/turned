@@ -252,17 +252,17 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			inputString = strings.TrimPrefix(inputString, "cache+")
 
 			if strings.HasPrefix(inputString, "http://") || strings.HasPrefix(inputString, "https://") {
-				_ = utils.LoadCacheByRemote(inputString, f.bottle.BloomFilter)
+				_ = utils.RemoteCacheLoader(inputString, f.bottle.BloomFilter)
 			} else {
-				_ = utils.LoadCacheByLocal(inputString, f.bottle.BloomFilter)
+				_ = utils.LocalCacheLoader(inputString, f.bottle.BloomFilter)
 			}
 
 		case strings.HasPrefix(inputStringInLow, "http://"),
 			strings.HasPrefix(inputStringInLow, "https://"):
-			_ = utils.LoadRuleByRemote(inputString, f.bottle.BloomFilter)
+			_ = utils.RemoteRuleLoader(inputString, f.bottle.BloomFilter)
 
 		default:
-			_ = utils.LoadRuleByLocal(inputString, f.bottle.BloomFilter, false)
+			_ = utils.LocalRuleLoader(inputString, f.bottle.BloomFilter, false)
 
 		}
 
