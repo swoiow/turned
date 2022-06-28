@@ -3,19 +3,19 @@ module github.com/swoiow/turned
 go 1.18
 
 require (
-	github.com/bits-and-blooms/bloom/v3 v3.2.0
 	github.com/coredns/caddy v1.1.1
 	github.com/coredns/coredns v1.9.3
 	github.com/miekg/dns v1.1.49
 	github.com/prometheus/client_golang v1.12.2
-	github.com/swoiow/blocked v1.1.4
+	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb
+	github.com/swoiow/blocked alpha
 )
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 	pkgtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/transport"
+	cuckoo "github.com/seiflotfy/cuckoofilter"
 	utils "github.com/swoiow/blocked"
 	"github.com/swoiow/blocked/parsers"
 )
@@ -238,7 +238,7 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		inputStringInLow := strings.ToLower(inputString)
 
 		if f.bottle == nil {
-			bottle := bloom.NewWithEstimates(50_000, 0.001)
+			bottle := cuckoo.NewFilter(200_000)
 
 			adapter := NewAdapter()
 			adapter.BloomFilter = bottle
@@ -252,18 +252,26 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			inputString = strings.TrimPrefix(inputString, "cache+")
 
 			if strings.HasPrefix(inputString, "http://") || strings.HasPrefix(inputString, "https://") {
-				_ = utils.RemoteCacheLoader(inputString, f.bottle.BloomFilter)
+				filter, _ := utils.RemoteCacheLoader(inputString)
+				f.bottle.BloomFilter = filter
 			} else {
-				_ = utils.LocalCacheLoader(inputString, f.bottle.BloomFilter)
+				filter, _ := utils.LocalCacheLoader(inputString)
+				f.bottle.BloomFilter = filter
 			}
 
 		case strings.HasPrefix(inputStringInLow, "http://"),
 			strings.HasPrefix(inputStringInLow, "https://"):
-			_ = utils.RemoteRuleLoader(inputString, f.bottle.BloomFilter)
+
+			err := utils.RemoteRuleLoader(inputString, f.bottle.BloomFilter)
+			if err != nil {
+				return err
+			}
 
 		default:
-			_ = utils.LocalRuleLoader(inputString, f.bottle.BloomFilter, false)
-
+			err := utils.LocalRuleLoader(inputString, f.bottle.BloomFilter, false)
+			if err != nil {
+				return err
+			}
 		}
 
 		f.from = ""

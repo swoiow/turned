@@ -178,9 +178,11 @@ func (f *Forward) match(d string) bool {
 	case f.bottle != nil:
 		// log.Info("matching by bottle")
 
+		// hash match
 		if f.bottle.Contains(d) {
 			return true
 		}
+		// bloom match
 		return f.useWildMode(d)
 
 	default:

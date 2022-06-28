@@ -1,11 +1,11 @@
 package turned
 
 import (
-	BF "github.com/bits-and-blooms/bloom/v3"
+	cuckoo "github.com/seiflotfy/cuckoofilter"
 )
 
 type bottleAdapter struct {
-	BloomFilter  *BF.BloomFilter
+	BloomFilter  *cuckoo.Filter
 	HashMap      map[string]bool
 	ContainsFunc func(data string) bool
 }
@@ -19,10 +19,14 @@ func NewAdapter() *bottleAdapter {
 
 func (adapter *bottleAdapter) setupContainsFunc() {
 	if adapter.BloomFilter != nil {
-		adapter.ContainsFunc = adapter.BloomFilter.TestString
+		adapter.ContainsFunc = adapter.lookup
 	} else {
 		adapter.ContainsFunc = adapter.mapTestString
 	}
+}
+
+func (adapter *bottleAdapter) lookup(s string) bool {
+	return adapter.BloomFilter.Lookup([]byte(s))
 }
 
 func (adapter *bottleAdapter) Contains(s string) bool {
