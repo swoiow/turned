@@ -25,13 +25,26 @@ func parseTurned(c *caddy.Controller) ([]*Forward, error) {
 		// i   int
 		bucket []*Forward
 	)
+
 	for c.Next() {
 		f, err = parseForward(c)
 		if err != nil {
 			return nil, err
 		}
-
 		bucket = append(bucket, f)
+
+		mode := "-"
+		count := "-"
+		if f.bottle != nil {
+			if f.bottle.BloomFilter != nil {
+				mode = "Bloom"
+				count = strconv.Itoa(int(f.bottle.BloomFilter.Count()))
+			} else {
+				mode = "Hash"
+				count = strconv.Itoa(len(f.bottle.HashMap))
+			}
+		}
+		log.Infof("[Settings] config node >>  name:%s mode:%s count:%s", f.groupName, mode, count)
 	}
 	return bucket, nil
 }

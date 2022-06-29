@@ -53,6 +53,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	question := r.Question[0]
 	qDomain := PureDomain(question.Name)
 
+	// turned core logic
 	for _, node := range app.Nodes {
 		if node.match(qDomain) {
 			f = node
