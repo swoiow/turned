@@ -3,10 +3,16 @@ package turned
 import (
 	"crypto/tls"
 	"errors"
+	"net"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
 )
+
+type ClientSubnet struct {
+	Addr    net.IP
+	NetMark uint8
+}
 
 // Forward represents a plugin instance that can proxy requests to another (DNS) server. It has a list
 // of proxies each representing one upstream proxy.
@@ -19,6 +25,8 @@ type Forward struct {
 
 	groupName string
 	ignored   []string
+
+	eDnsClientSubnet []ClientSubnet
 
 	tlsConfig     *tls.Config
 	tlsServerName string
@@ -55,6 +63,7 @@ type options struct {
 	forceTCP           bool
 	preferUDP          bool
 	hcRecursionDesired bool
+	eDNS               bool
 }
 
 var defaultTimeout = 5 * time.Second

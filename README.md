@@ -16,13 +16,19 @@ forward的改造，dns按分组选择查询上游。没计划实现dns优选(建
         class all
     }
 
-    returned push {
+    turned push {
         from *.push.apple.com *.ntp.org
         to 223.5.5.5:53 
         prefer_udp
         policy sequential
     }
-
+    
+    turned edns0 {
+        from .
+        to tls://8.8.8.8
+        edns_client_subnet 208.88.86.0/24 208.88.85.0/24
+    }
+    
     turned inside {
         rules domains.txt
         to 223.5.5.5:53

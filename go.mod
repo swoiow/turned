@@ -6,7 +6,7 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.2.0
 	github.com/coredns/caddy v1.1.1
 	github.com/coredns/coredns v1.9.3
-	github.com/miekg/dns v1.1.49
+	github.com/miekg/dns v1.1.50
 	github.com/prometheus/client_golang v1.12.2
 	github.com/swoiow/blocked v1.1.4
 )

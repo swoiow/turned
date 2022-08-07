@@ -3,6 +3,7 @@ package turned
 import (
 	"context"
 	"crypto/tls"
+	"math/rand"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -53,6 +54,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	question := r.Question[0]
 	qDomain := PureDomain(question.Name)
 
+	// turned core logic
 	for _, node := range app.Nodes {
 		if node.match(qDomain) {
 			f = node
@@ -65,6 +67,31 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		return plugin.NextOrFailure(app.Name(), app.Next, ctx, w, r)
 	}
 
+	/*  eDNS0 client subnet logic
+	https://github.com/DNSCrypt/dnscrypt-proxy/blob/master/vendor/github.com/miekg/dns/edns.go#L252
+	https://developers.google.com/speed/public-dns/docs/ecs?hl=zh-cn#fn7
+	*/
+
+	if f.opts.eDNS {
+		o := &dns.OPT{
+			Hdr: dns.RR_Header{
+				Name:   ".",
+				Rrtype: dns.TypeOPT,
+			},
+		}
+
+		eDNS0Ip := f.eDnsClientSubnet[rand.Intn(len(f.eDnsClientSubnet))]
+		ed := &dns.EDNS0_SUBNET{
+			Code:          dns.EDNS0SUBNET,
+			Address:       eDNS0Ip.Addr,
+			Family:        1, // 1 for IPv4 source address, 2 for IPv6
+			SourceNetmask: eDNS0Ip.NetMark,
+		}
+		o.Option = append(o.Option, ed)
+		r.Extra = append(r.Extra, o)
+	}
+
+	// Forward logic
 	matchedTime := time.Since(start)
 
 	state := request.Request{W: w, Req: r}
@@ -178,9 +205,11 @@ func (f *Forward) match(d string) bool {
 	case f.bottle != nil:
 		// log.Info("matching by bottle")
 
+		// hash match
 		if f.bottle.Contains(d) {
 			return true
 		}
+		// bloom match
 		return f.useWildMode(d)
 
 	default:

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bits-and-blooms/bloom/v3"
+	bloom "github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/parse"
@@ -25,6 +25,7 @@ func parseTurned(c *caddy.Controller) ([]*Forward, error) {
 		// i   int
 		bucket []*Forward
 	)
+
 	for c.Next() {
 		f, err = parseForward(c)
 		if err != nil {
@@ -32,6 +33,21 @@ func parseTurned(c *caddy.Controller) ([]*Forward, error) {
 		}
 
 		bucket = append(bucket, f)
+
+		mode := "-"
+		count := "-"
+		if f.bottle == nil {
+			log.Infof("[Settings] config node >> name:%s", f.groupName)
+		} else {
+			if f.bottle.BloomFilter != nil {
+				mode = "Bloom"
+				count = strconv.Itoa(int(f.bottle.BloomFilter.ApproximatedSize()))
+			} else {
+				mode = "Hash"
+				count = strconv.Itoa(len(f.bottle.HashMap))
+			}
+			log.Infof("[Settings] config node >> name:%s mode:%s count:%s", f.groupName, mode, count)
+		}
 	}
 	return bucket, nil
 }
@@ -105,6 +121,22 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			}
 		}
 
+	case "edns", "edns_client_subnet":
+		subnets := c.RemainingArgs()
+		if len(subnets) == 0 {
+			return c.ArgErr()
+		}
+
+		for _, subnet := range subnets {
+			if i, m := ParseEDNS0SubNet(subnet); i != nil {
+				f.eDnsClientSubnet = append(f.eDnsClientSubnet, ClientSubnet{i, m})
+			}
+		}
+
+		if len(f.eDnsClientSubnet) > 0 {
+			f.opts.eDNS = true
+		}
+		log.Infof("[Settings] setup edns0: %v", f.eDnsClientSubnet)
 	case "force_tcp":
 		if c.NextArg() {
 			return c.ArgErr()
@@ -263,7 +295,6 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 
 		default:
 			_ = utils.LocalRuleLoader(inputString, f.bottle.BloomFilter, false)
-
 		}
 
 		f.from = ""
