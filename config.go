@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	bloom "github.com/bits-and-blooms/bloom/v3"
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 	pkgtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/transport"
-	utils "github.com/swoiow/blocked"
-	"github.com/swoiow/blocked/parsers"
+	"github.com/swoiow/dns_utils/loader"
+	"github.com/swoiow/dns_utils/parsers"
 )
 
 func parseTurned(c *caddy.Controller) ([]*Forward, error) {
@@ -267,7 +268,6 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 	case "rules":
 		args := c.RemainingArgs()
 		inputString := strings.TrimSpace(args[0])
-		inputStringInLow := strings.ToLower(inputString)
 
 		if f.bottle == nil {
 			bottle := bloom.NewWithEstimates(50_000, 0.001)
@@ -279,22 +279,23 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			f.bottle = adapter
 		}
 
+		m := loader.DetectMethods(inputString)
 		switch true {
-		case strings.HasPrefix(inputStringInLow, "cache+"):
-			inputString = strings.TrimPrefix(inputString, "cache+")
+		case m.IsCache:
+			err := m.LoadCache(f.bottle.BloomFilter)
+			if err != nil {
+				return err
+			}
+			break
 
-			if strings.HasPrefix(inputString, "http://") || strings.HasPrefix(inputString, "https://") {
-				_ = utils.RemoteCacheLoader(inputString, f.bottle.BloomFilter)
-			} else {
-				_ = utils.LocalCacheLoader(inputString, f.bottle.BloomFilter)
+		case m.IsRemote:
+			rules, err := m.LoadRules(false)
+			if err != nil {
+				return err
 			}
 
-		case strings.HasPrefix(inputStringInLow, "http://"),
-			strings.HasPrefix(inputStringInLow, "https://"):
-			_ = utils.RemoteRuleLoader(inputString, f.bottle.BloomFilter)
-
-		default:
-			_ = utils.LocalRuleLoader(inputString, f.bottle.BloomFilter, false)
+			c, _ := addLines2filter(rules, f.bottle.BloomFilter)
+			clog.Infof(loadLogFmt, "rules", c, m.RawInput)
 		}
 
 		f.from = ""
@@ -309,6 +310,16 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 
 const max = 15 // Maximum number of upstreams.
 
-func PureDomain(s string) string {
-	return utils.PureDomain(s)
+/*
+ *   Utils
+ */
+
+func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.BloomFilter) {
+	c := 0
+	for _, line := range lines {
+		if !filter.TestAndAddString(strings.ToLower(strings.TrimSpace(line))) {
+			c += 1
+		}
+	}
+	return c, filter
 }

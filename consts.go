@@ -9,6 +9,10 @@ import (
 	"github.com/coredns/coredns/plugin"
 )
 
+const (
+	loadLogFmt = "Loaded %s (num:%v) from `%s`."
+)
+
 type ClientSubnet struct {
 	Addr    net.IP
 	NetMark uint8

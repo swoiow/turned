@@ -15,6 +15,7 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
+	"github.com/swoiow/dns_utils"
 )
 
 var log = clog.NewWithPlugin(pluginName)
@@ -52,7 +53,7 @@ func (app *Turned) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 	var f *Forward
 	question := r.Question[0]
-	qDomain := PureDomain(question.Name)
+	qDomain := dns_utils.PureDomain(question.Name)
 
 	// turned core logic
 	for _, node := range app.Nodes {
