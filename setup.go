@@ -38,6 +38,7 @@ func setup(c *caddy.Controller) error {
 		return app.OnShutdown()
 	})
 
+	fmt.Printf("\n")
 	return nil
 }
 

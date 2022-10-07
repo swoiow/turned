@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/plugin"
-	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 	pkgtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/transport"
@@ -38,7 +38,7 @@ func parseTurned(c *caddy.Controller) ([]*Forward, error) {
 		mode := "-"
 		count := "-"
 		if f.bottle == nil {
-			log.Infof("[Settings] config node >> name:%s", f.groupName)
+			log.Infof("[doing] config node >> name:%s", f.groupName)
 		} else {
 			if f.bottle.BloomFilter != nil {
 				mode = "Bloom"
@@ -47,7 +47,7 @@ func parseTurned(c *caddy.Controller) ([]*Forward, error) {
 				mode = "Hash"
 				count = strconv.Itoa(len(f.bottle.HashMap))
 			}
-			log.Infof("[Settings] config node >> name:%s mode:%s count:%s", f.groupName, mode, count)
+			log.Infof("[doing] config node >> name:%s mode:%s count:%s", f.groupName, mode, count)
 		}
 	}
 	return bucket, nil
@@ -137,7 +137,7 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		if len(f.eDnsClientSubnet) > 0 {
 			f.opts.eDNS = true
 		}
-		log.Infof("[Settings] setup edns0: %v", f.eDnsClientSubnet)
+		log.Infof("[doing] setup edns0: %v", f.eDnsClientSubnet)
 	case "force_tcp":
 		if c.NextArg() {
 			return c.ArgErr()
@@ -286,23 +286,29 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			if err != nil {
 				return err
 			}
+
+			log.Infof(loadLogFmt, "cache", f.bottle.BloomFilter.ApproximatedSize(), m.RawInput)
 			break
 
-		case m.IsRemote:
+		case m.IsRules:
 			rules, err := m.LoadRules(false)
 			if err != nil {
 				return err
 			}
 
 			c, _ := addLines2filter(rules, f.bottle.BloomFilter)
-			clog.Infof(loadLogFmt, "rules", c, m.RawInput)
+			log.Infof(loadLogFmt, "rules", c, m.RawInput)
+			break
+
+		default:
+			log.Warningf("Unload anythings in `rules` with '%s'.", m.RawInput)
 		}
 
 		f.from = ""
 		break
 
 	default:
-		return c.Errf("unknown property '%s'", c.Val())
+		return c.Errf("Unknown property '%s'.", c.Val())
 	}
 
 	return nil
@@ -322,4 +328,23 @@ func addLines2filter(lines []string, filter *bloom.BloomFilter) (int, *bloom.Blo
 		}
 	}
 	return c, filter
+}
+
+func ParseEDNS0SubNet(clientSubnet string) (net.IP, uint8) {
+	ip := net.ParseIP(clientSubnet)
+	if ip != nil {
+		clientSubnet = fmt.Sprintf("%s/24", ip)
+	}
+
+	_, ipNet, err := net.ParseCIDR(clientSubnet)
+	if err != nil {
+		log.Errorf("unable to parse subnet: %s", clientSubnet)
+		return nil, 0
+	}
+	netMark, _ := ipNet.Mask.Size()
+	if netMark >= 32 {
+		log.Errorf("%s net mark should less than 32", clientSubnet)
+		return nil, 0
+	}
+	return ipNet.IP, uint8(netMark)
 }
