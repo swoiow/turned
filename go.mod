@@ -1,4 +1,4 @@
-module turned
+module github.com/swoiow/turned
 
 go 1.19
 
