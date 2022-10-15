@@ -78,7 +78,14 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 }
 
 func parseBlock(c *caddy.Controller, f *Forward) error {
+	var bootstrapResolvers []string
+
 	switch c.Val() {
+
+	case "bootstrap_resolvers":
+		bootstrapResolvers = c.RemainingArgs()
+		log.Info("[doing] bootstrap_resolvers is enabled")
+		break
 
 	case "except":
 		ignore := c.RemainingArgs()
@@ -280,20 +287,52 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		}
 
 		m := loader.DetectMethods(inputString)
+
 		switch true {
 		case m.IsCache:
-			err := m.LoadCache(f.bottle.BloomFilter)
-			if err != nil {
-				return err
+			isOk := false
+			for _, resolver := range bootstrapResolvers {
+				m.SetupResolver(resolver)
+				err := m.LoadCache(f.bottle.BloomFilter)
+				if err != nil {
+					continue
+				} else {
+					isOk = true
+					break
+				}
+			}
+			if !isOk {
+				err := m.LoadCache(f.bottle.BloomFilter)
+				if err != nil {
+					return err
+				}
 			}
 
 			log.Infof(loadLogFmt, "cache", f.bottle.BloomFilter.ApproximatedSize(), m.RawInput)
 			break
 
 		case m.IsRules:
-			rules, err := m.LoadRules(false)
-			if err != nil {
-				return err
+			var (
+				isOk  = false
+				rules []string
+				err   error
+			)
+
+			for _, resolver := range bootstrapResolvers {
+				m.SetupResolver(resolver)
+				rules, err = m.LoadRules(false)
+				if err != nil {
+					continue
+				} else {
+					isOk = true
+					break
+				}
+			}
+			if !isOk {
+				rules, err = m.LoadRules(false)
+				if err != nil {
+					return err
+				}
 			}
 
 			c, _ := addLines2filter(rules, f.bottle.BloomFilter)
