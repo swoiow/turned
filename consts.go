@@ -30,6 +30,8 @@ type Forward struct {
 	groupName string
 	ignored   []string
 
+	bootstrapResolvers []string
+
 	eDnsClientSubnet []ClientSubnet
 
 	tlsConfig     *tls.Config

@@ -78,12 +78,10 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 }
 
 func parseBlock(c *caddy.Controller, f *Forward) error {
-	var bootstrapResolvers []string
-
 	switch c.Val() {
 
 	case "bootstrap_resolvers":
-		bootstrapResolvers = c.RemainingArgs()
+		f.bootstrapResolvers = c.RemainingArgs()
 		log.Info("[doing] bootstrap_resolvers is enabled")
 		break
 
@@ -287,14 +285,16 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		}
 
 		m := loader.DetectMethods(inputString)
+		bsResolvers := f.bootstrapResolvers
 
 		switch true {
 		case m.IsCache:
 			isOk := false
-			for _, resolver := range bootstrapResolvers {
+			for _, resolver := range bsResolvers {
 				m.SetupResolver(resolver)
 				err := m.LoadCache(f.bottle.BloomFilter)
 				if err != nil {
+					log.Warningf("resolver[%s] catch err: %s", resolver, err)
 					continue
 				} else {
 					isOk = true
@@ -318,10 +318,11 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 				err   error
 			)
 
-			for _, resolver := range bootstrapResolvers {
+			for _, resolver := range bsResolvers {
 				m.SetupResolver(resolver)
 				rules, err = m.LoadRules(false)
 				if err != nil {
+					log.Warningf("resolver[%s] catch err: %s", resolver, err)
 					continue
 				} else {
 					isOk = true
@@ -344,6 +345,9 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		}
 
 		f.from = ""
+		break
+
+	case "{", "}":
 		break
 
 	default:

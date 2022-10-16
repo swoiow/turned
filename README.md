@@ -2,8 +2,7 @@
 
 A coredns plugin to turn DNS query.
 
-forward的改造，dns按分组选择查询上游。没计划实现dns优选(建议使用Edns-Client-Subnet)。 
-
+[forward](https://coredns.io/plugins/forward/)的改造，dns按分组选择查询上游。没计划实现dns优选(建议使用Edns-Client-Subnet)。
 
 ## Usage
 
@@ -16,6 +15,11 @@ forward的改造，dns按分组选择查询上游。没计划实现dns优选(建
         class all
     }
 
+    turned load-remote-dat {
+        bootstrap_resolvers 1.1.1.1:53
+        rules https://domains.txt
+    }
+    
     turned push {
         from *.push.apple.com *.ntp.org
         to 223.5.5.5:53 
