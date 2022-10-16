@@ -81,17 +81,21 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 	switch c.Val() {
 
 	case "bootstrap_resolvers":
-		f.bootstrapResolvers = c.RemainingArgs()
+		args := c.RemainingArgs()
+		if args == nil {
+			args = []string{"1.0.0.1:53", "8.8.4.4:53", "223.5.5.5:53", "119.29.29.29:53"}
+		}
+		f.bootstrapResolvers = args
 		log.Info("[doing] bootstrap_resolvers is enabled")
 		break
 
 	case "except":
-		ignore := c.RemainingArgs()
-		if len(ignore) == 0 {
+		args := c.RemainingArgs()
+		if len(args) == 0 {
 			return c.ArgErr()
 		}
-		for i := 0; i < len(ignore); i++ {
-			f.ignored = append(f.ignored, plugin.Host(ignore[i]).NormalizeExact()...)
+		for i := 0; i < len(args); i++ {
+			f.ignored = append(f.ignored, plugin.Host(args[i]).NormalizeExact()...)
 		}
 	case "max_fails":
 		if !c.NextArg() {
@@ -128,12 +132,12 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		}
 
 	case "edns", "edns_client_subnet":
-		subnets := c.RemainingArgs()
-		if len(subnets) == 0 {
+		args := c.RemainingArgs()
+		if len(args) == 0 {
 			return c.ArgErr()
 		}
 
-		for _, subnet := range subnets {
+		for _, subnet := range args {
 			if i, m := ParseEDNS0SubNet(subnet); i != nil {
 				f.eDnsClientSubnet = append(f.eDnsClientSubnet, ClientSubnet{i, m})
 			}
@@ -211,12 +215,12 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 
 	// turned part
 	case "to":
-		to := c.RemainingArgs()
-		if len(to) == 0 {
+		args := c.RemainingArgs()
+		if len(args) == 0 {
 			return c.ArgErr()
 		}
 
-		toHosts, err := parse.HostPortOrFile(to...)
+		toHosts, err := parse.HostPortOrFile(args...)
 		if err != nil {
 			panic(err)
 			// return f, err
